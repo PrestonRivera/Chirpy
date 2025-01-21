@@ -3,34 +3,38 @@ package main
 import (
 	"log"
 	"net/http"
+	"sync/atomic"
 )
 
 // run your server:   go build -o out && ./out
+
+
+type apiConfig struct {
+	fileserverHits atomic.Int32
+}
 
 
 func main() {
 	const filePathRoot = "."
 	const port = "8080"
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", handlerReadiness)
-	mux.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir(filePathRoot))))
+	apiCfg := &apiConfig{
+		fileserverHits: atomic.Int32{},
+	}
 
-	s := &http.Server{
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/healthz", handlerReadiness)
+	mux.HandleFunc("GET /api/metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("POST /api/reset", apiCfg.handlerReset)
+
+	// Frontend Handler
+	mux.Handle("/app/", apiCfg.middlewareMetricInc(http.StripPrefix("/app", http.FileServer(http.Dir(filePathRoot)))))
+	
+	srv := &http.Server{
 		Addr: ":" + port,
 		Handler: mux,
 	}
 
 	log.Printf("Serving files from %s on port: %s\n", filePathRoot, port)
-	err := s.ListenAndServe()
-	if err != nil {
-		log.Fatalf("Server failed: %v", err.Error())
-	}
-}
-
-
-func handlerReadiness(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(200)
-	w.Write([]byte("OK"))
+	log.Fatal(srv.ListenAndServe())
 }
