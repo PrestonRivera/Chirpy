@@ -19,11 +19,6 @@ type User struct {
 
 
 func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		return
-	}
-
 	type parameters struct {
 		Email string `json:"email"`
 	}
@@ -54,10 +49,6 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 
 
 func (cfg *apiConfig) handlerResetUsers(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-	}
-	
 	platform, found := os.LookupEnv("PLATFORM")
 	if !found || platform != "dev" {
 		sendJsonResponse(w, http.StatusForbidden, map[string]string{"error": "Not authorized"})

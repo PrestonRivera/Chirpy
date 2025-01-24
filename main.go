@@ -12,14 +12,12 @@ import (
 	_ "github.com/lib/pq"
 )
 
-
 type apiConfig struct {
-	fileserverHits 	atomic.Int32
-	db 				*database.Queries
-	platform 		string
+	fileserverHits atomic.Int32
+	db             *database.Queries
+	platform       string
 }
 
-//
 func main() {
 	const filePathRoot = "."
 	const port = "8080"
@@ -43,8 +41,8 @@ func main() {
 
 	apiCfg := &apiConfig{
 		fileserverHits: atomic.Int32{},
-		db: 			dbQueries,
-		platform: 		platform,
+		db:             dbQueries,
+		platform:       platform,
 	}
 
 	mux := http.NewServeMux()
@@ -52,16 +50,18 @@ func main() {
 	mux.Handle("/app/", apiCfg.middlewareMetricInc(http.StripPrefix("/app", http.FileServer(http.Dir(filePathRoot)))))
 
 	// GET Resquests
-	mux.HandleFunc("/api/healthz", handlerReadiness)
-	mux.HandleFunc("/admin/metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("GET /api/healthz", handlerReadiness)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetSingleChirp)
 	// POST Requests
-	mux.HandleFunc("/admin/reset-fileserver-hits", apiCfg.handlerResetHits)
-	mux.HandleFunc("/api/validate_chirp", handlerChirp)
-	mux.HandleFunc("/admin/reset", apiCfg.handlerResetUsers)
-	mux.HandleFunc("/api/users", apiCfg.handlerUsers)
-	
+	mux.HandleFunc("POST /admin/reset-fileserver-hits", apiCfg.handlerResetHits)
+	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirp)
+	mux.HandleFunc("POST /admin/reset", apiCfg.handlerResetUsers)
+	mux.HandleFunc("POST /api/users", apiCfg.handlerUsers)
+
 	srv := &http.Server{
-		Addr: ":" + port,
+		Addr:    ":" + port,
 		Handler: mux,
 	}
 

@@ -16,9 +16,6 @@ const htmlTemp = `
 
 //
 func (cfg *apiConfig)handlerMetrics(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-	}
 	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(htmlTemp, cfg.fileserverHits.Load())))
