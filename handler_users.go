@@ -1,6 +1,8 @@
 package main
 
 import (
+	"Chirpy/internal/auth"
+	"Chirpy/internal/database"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -11,16 +13,17 @@ import (
 )
 
 type User struct {
-	ID 			uuid.UUID `json:"id"`
-	CreatedAt 	time.Time `json:"created_at"`
-	UpdatedAt 	time.Time `json:"updated_at"`
-	Email 		string `json:"email"`
+	ID 				uuid.UUID `json:"id"`
+	CreatedAt 		time.Time `json:"created_at"`
+	UpdatedAt 		time.Time `json:"updated_at"`
+	Email 			string `json:"email"`
 }
 
 
 func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email string `json:"email"`
+		Password 	string `json:"password"`
+		Email 		string `json:"email"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -28,11 +31,20 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 	if err != nil {
 		log.Printf("Error decoding parameters: %s", err)
-		sendJsonResponse(w, 500, map[string]string{"error": "something went wrong"})
+		sendJsonResponse(w, 500, map[string]string{"error": "Failed to handle user request"})
+		return
+	}
+	hashedPassword, err := auth.HashPassword(params.Password)
+	if err != nil {
+		log.Printf("Error hashing user password: %s", err)
+		sendJsonResponse(w, 500, map[string]string{"error": "Failed to create users password"})
 		return
 	}
 
-	user, err := cfg.db.CreateUser(r.Context(), params.Email)
+	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
+		Email: params.Email,
+		HashedPassword: hashedPassword,
+	})
 	if err != nil {
 		log.Printf("Error creating new user: %s", err)
 		sendJsonResponse(w, 500, map[string]string{"error": "Failed to create new user"})

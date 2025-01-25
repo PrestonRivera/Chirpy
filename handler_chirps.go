@@ -33,7 +33,7 @@ func (cfg *apiConfig) handlerChirp(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 	if err != nil {
 		log.Printf("Error decoding parameters: %s", err)
-		sendJsonResponse(w, 500, map[string]string{"error": "Something went wrong"})
+		sendJsonResponse(w, 500, map[string]string{"error": "Failed to handle user request"})
 		return
 	}
 
@@ -60,7 +60,7 @@ func (cfg *apiConfig) handlerChirp(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// 
+//
 func isChirpValid(chirp string) string {
 	if len(chirp) > 140 {
 		return ""
