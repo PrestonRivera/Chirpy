@@ -2,6 +2,7 @@ package main
 
 import (
 	"Chirpy/internal/auth"
+	"Chirpy/internal/database"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -11,11 +12,12 @@ import (
 )
 
 type LoginResponse struct {
-	ID 			uuid.UUID 	`json:"ID"`
+	ID 			uuid.UUID 	`json:"id"`
 	CreatedAt 	time.Time 	`json:"created_at"`
 	UpdatedAt 	time.Time 	`json:"updated_at"`
 	Email 		string 		`json:"email"`
 	Token 		string 		`json:"token"`
+	RefreshTok  string		`json:"refresh_token"`
 }
 
 //
@@ -23,7 +25,6 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password 	string  `json:"password"`
 		Email 		string  `json:"email"`
-		ExpiresIn	int		`json:"expires_in_seconds"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -49,20 +50,30 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expiresIn := 3600
-	if params.ExpiresIn > 0 {
-		if params.ExpiresIn > 3600 {
-			expiresIn = 3600
-		} else {
-			expiresIn = params.ExpiresIn
-		}
-	}
-	duration := time.Duration(expiresIn) * time.Second
-	userToken, err := auth.MakeJWT(user.ID, cfg.secret, duration)
+	userToken, err := auth.MakeJWT(user.ID, cfg.secret, time.Hour)
 	if err != nil {
 		log.Printf("Error creating JWT: %v", err)
 		sendJsonResponse(w, 500, map[string]string{"error": "Failed to create token"})
 		return
+	}
+
+	refTok, err := auth.MakeRefreshToken()
+	if err != nil {
+		log.Printf("Error creating refresh token: %v", err)
+		sendJsonResponse(w, 500, map[string]string{"error": "Failed to create refresh token"})
+		return 
+	}
+
+	expiresAt := time.Now().Add(60 * 24 * time.Hour)
+	err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		Token: refTok,
+		UserID: user.ID,
+		ExpiresAt: expiresAt,
+	})
+	if err != nil {
+		log.Printf("Error storing refresh token")
+		sendJsonResponse(w, 500, map[string]string{"error": "Failed to store user refresh token"})
+		return 
 	}
 
 	sendJsonResponse(w, 200, LoginResponse{
@@ -71,5 +82,6 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: user.UpdatedAt,
 		Email: user.Email,
 		Token: userToken,
+		RefreshTok: refTok,
 	})
 }

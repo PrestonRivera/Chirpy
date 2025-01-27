@@ -1,14 +1,15 @@
 package main
 
 import (
+	"Chirpy/internal/auth"
 	"Chirpy/internal/database"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strings"
 	"time"
-	"errors"
 
 	"github.com/google/uuid"
 )
@@ -25,7 +26,6 @@ type Chirp struct {
 func (cfg *apiConfig) handlerChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
-		User_id uuid.UUID `json:"user_id"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -37,6 +37,20 @@ func (cfg *apiConfig) handlerChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf("Error getting authorization header: %v", err)
+		sendJsonResponse(w, 401, map[string]string{"error": "Failed to get user token"})
+		return 
+	}
+
+	userUUID, err := auth.ValidateJWT(token, cfg.secret)
+	if err != nil {
+		log.Printf("User not authorized: %v", err)
+		sendJsonResponse(w, 401, map[string]string{"error": "Unauthorized"})
+		return 
+	}
+
 	chirp := isChirpValid(params.Body)
 	if len(chirp) < 1 {
 		sendJsonResponse(w, 400, nil)
@@ -44,7 +58,7 @@ func (cfg *apiConfig) handlerChirp(w http.ResponseWriter, r *http.Request) {
 	}
 	newChirp, err := cfg.db.CreateChirps(r.Context(), database.CreateChirpsParams{
 		Body: chirp,
-		UserID: params.User_id,
+		UserID: userUUID,
 	})
 	if err != nil {
 		log.Printf("Error creating new chirp: %s", err)
