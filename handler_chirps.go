@@ -123,8 +123,8 @@ func (cfg *apiConfig) handlerGetSingleChirp(w http.ResponseWriter, r *http.Reque
 	reqID := r.PathValue("chirpID")
 	parsedID, err := uuid.Parse(reqID)
 	if err != nil {
-		log.Printf("UUID is invalid: %s", err)
-		sendJsonResponse(w, 400, map[string]string{"error": "Bad request"})
+		log.Printf("Chirp UUID is invalid: %s", err)
+		sendJsonResponse(w, 400, map[string]string{"error": "Invalid chirp ID"})
 		return
 	}
 
@@ -146,4 +146,49 @@ func (cfg *apiConfig) handlerGetSingleChirp(w http.ResponseWriter, r *http.Reque
 		Body: chirp.Body,
 		User_id: chirp.UserID,
 	})
+}
+
+//
+func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request) {
+	reqID := r.PathValue("chirpID")
+	parsedID, err := uuid.Parse(reqID)
+	if err != nil {
+		log.Printf("Chirp UUID is invalid")
+		sendJsonResponse(w, 400, map[string]string{"error": "Invalid chirp ID"})
+		return
+	}
+
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf("Error getting authorization header: %v", err)
+		sendJsonResponse(w, 401, map[string]string{"error": "Failed to get user token"})
+		return
+	}
+
+	userUUID, err := auth.ValidateJWT(token, cfg.secret)
+	if err != nil {
+		log.Printf("User not authorized")
+		sendJsonResponse(w, 403, map[string]string{"error": "User is not authorized"})
+		return
+	}
+
+	chirp, err := cfg.db.GetSingleChirp(r.Context(), parsedID)
+	if err != nil {
+		log.Printf("Chirp not found for chirpID: %v", parsedID)
+		sendJsonResponse(w, 404, map[string]string{"error": "Chirp not found"})
+		return
+	}
+
+	if userUUID != chirp.UserID {
+		sendJsonResponse(w, 403, map[string]string{"error": "User not authorized to delete chirp"})
+		return
+	}
+
+	err = cfg.db.DeleteChirp(r.Context(), parsedID)
+	if err != nil {
+		log.Printf("Error deleting users chirp: %v", err)
+		sendJsonResponse(w, 500, map[string]string{"error": "Internal server error"})
+		return
+	}
+	sendJsonResponse(w, 204, nil)
 }

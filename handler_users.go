@@ -19,7 +19,7 @@ type User struct {
 	Email 			string 		`json:"email"`
 }
 
-
+//
 func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password 	string `json:"password"`
@@ -31,7 +31,7 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 	if err != nil {
 		log.Printf("Error decoding parameters: %s", err)
-		sendJsonResponse(w, 500, map[string]string{"error": "Failed to handle user request"})
+		sendJsonResponse(w, 400, map[string]string{"error": "Invalid user request payload"})
 		return
 	}
 	hashedPassword, err := auth.HashPassword(params.Password)
@@ -59,19 +59,79 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-
+//
 func (cfg *apiConfig) handlerResetUsers(w http.ResponseWriter, r *http.Request) {
 	platform, found := os.LookupEnv("PLATFORM")
 	if !found || platform != "dev" {
-		sendJsonResponse(w, http.StatusForbidden, map[string]string{"error": "Not authorized"})
+		sendJsonResponse(w, http.StatusForbidden, map[string]string{"error": "Access restricted in non-development enviroments"})
 		return
 	}
 
 	err := cfg.db.DeleteAllUsers(r.Context())
 	if err != nil {
 		log.Printf("Error resetting database: %s", err)
-		sendJsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to restart database"})
+		sendJsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Failed to delete all users"})
 		return
 	}
 	sendJsonResponse(w, http.StatusOK, map[string]string{"status": "All users deleted successfully"})
+}
+
+//
+func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Email 		string `json:"email"`
+		Password 	string `json:"password"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err := decoder.Decode(&params)
+	if err != nil {
+		log.Printf("Error decoding parameters: %v", err)
+		sendJsonResponse(w, 400, map[string]string{"error": "Invalid user request payload"})
+		return 
+	}
+
+	if params.Email == "" || params.Password == "" {
+		sendJsonResponse(w, 400, map[string]string{"error": "Required fields are empty"})
+	}
+
+	userToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		sendJsonResponse(w, 401, map[string]string{"error": "Failed to get users token"})
+		return
+	}
+
+	userUUID, err := auth.ValidateJWT(userToken, cfg.secret)
+	if err != nil {
+		log.Printf("Error user not authorized: %v", err)
+		sendJsonResponse(w, 401, map[string]string{"error": "Unauthorized"})
+		return
+	}
+
+	newPassword, err := auth.HashPassword(params.Password)
+	if err != nil {
+		log.Printf("Error hashing users password: %v", err)
+		sendJsonResponse(w, 500, map[string]string{"error": "Failed to create users password"})
+		return
+	}
+
+	updatedUser, err := cfg.db.UpdateUsersCredentials(r.Context(), database.UpdateUsersCredentialsParams{
+		Email: params.Email,
+		HashedPassword: newPassword,
+		ID: userUUID,
+	})
+	if err != nil {
+		log.Printf("Error adding users new credentials: %v", err)
+		sendJsonResponse(w, 500, map[string]string{"error": "Failed to update credentials"})
+		return 
+	}
+
+	sendJsonResponse(w, 200, User{
+		ID: updatedUser.ID,
+		CreatedAt: updatedUser.CreatedAt,
+		UpdatedAt: updatedUser.UpdatedAt,
+		Email: updatedUser.Email,
+	})
 }
