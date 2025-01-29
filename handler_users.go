@@ -3,6 +3,7 @@ package main
 import (
 	"Chirpy/internal/auth"
 	"Chirpy/internal/database"
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -17,6 +18,7 @@ type User struct {
 	CreatedAt 		time.Time 	`json:"created_at"`
 	UpdatedAt 		time.Time 	`json:"updated_at"`
 	Email 			string 		`json:"email"`
+	IsChirpyRed 	bool		`json:"is_chirpy_red"`
 }
 
 //
@@ -56,6 +58,7 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email: user.Email,
+		IsChirpyRed: user.IsChirpyRed,
 	})
 }
 
@@ -133,5 +136,50 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) 
 		CreatedAt: updatedUser.CreatedAt,
 		UpdatedAt: updatedUser.UpdatedAt,
 		Email: updatedUser.Email,
+		IsChirpyRed: updatedUser.IsChirpyRed,
 	})
+}
+
+//
+func (cfg *apiConfig) handlerUpgradeUser(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Event string `json:"event"`
+		Data struct {
+			UserID uuid.UUID `json:"user_id"`
+		} `json:"data"`
+	}
+
+	params := parameters{}
+	err := json.NewDecoder(r.Body).Decode(&params)
+	if err != nil {
+		log.Printf("Error decoding parameters: %v", err)
+		sendJsonResponse(w, 400, map[string]string{"error": "Invalid user request payload"})
+		return
+	}
+
+	if params.Event != "user.upgraded" {
+		log.Printf("Ignored event: %s is not 'user.upgraded'", params.Event)
+		sendJsonResponse(w, 204, nil)
+		return
+	}
+
+	err = cfg.db.UpgradeUserToChirpyRed(r.Context(), database.UpgradeUserToChirpyRedParams{
+		ID: params.Data.UserID,
+		IsChirpyRed: true,
+	})
+	if err == sql.ErrNoRows {
+		log.Printf("User not found %v", params.Data.UserID)
+		sendJsonResponse(w, 404, map[string]string{"error": "User not found"})
+		return
+	}
+
+	if err != nil {
+		log.Printf("Database error while upgrading user: %v",  err)
+		sendJsonResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
+		return
+	}
+
+	log.Print("User was upgraded successfully")
+	sendJsonResponse(w, 204, nil)
+	return 
 }

@@ -26,7 +26,7 @@ INSERT INTO users (
     $1,
     $2
 )
-RETURNING id, created_at, updated_at, email, hashed_password
+RETURNING id, created_at, updated_at, email, hashed_password, is_chirpy_red
 `
 
 type CreateUserParams struct {
@@ -43,6 +43,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
@@ -57,7 +58,7 @@ func (q *Queries) DeleteAllUsers(ctx context.Context) error {
 }
 
 const findUserByEmail = `-- name: FindUserByEmail :one
-SELECT id, created_at, updated_at, email, hashed_password
+SELECT id, created_at, updated_at, email, hashed_password, is_chirpy_red
 FROM users
 WHERE users.email = $1
 LIMIT 1
@@ -72,6 +73,7 @@ func (q *Queries) FindUserByEmail(ctx context.Context, email string) (User, erro
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
@@ -80,7 +82,7 @@ const updateUsersCredentials = `-- name: UpdateUsersCredentials :one
 UPDATE users
 SET hashed_password = $1, email = $2, updated_at = NOW()
 WHERE id = $3
-RETURNING id, created_at, updated_at, email
+RETURNING id, created_at, updated_at, email, is_chirpy_red
 `
 
 type UpdateUsersCredentialsParams struct {
@@ -90,10 +92,11 @@ type UpdateUsersCredentialsParams struct {
 }
 
 type UpdateUsersCredentialsRow struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Email     string
+	ID          uuid.UUID
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Email       string
+	IsChirpyRed bool
 }
 
 func (q *Queries) UpdateUsersCredentials(ctx context.Context, arg UpdateUsersCredentialsParams) (UpdateUsersCredentialsRow, error) {
@@ -104,6 +107,23 @@ func (q *Queries) UpdateUsersCredentials(ctx context.Context, arg UpdateUsersCre
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Email,
+		&i.IsChirpyRed,
 	)
 	return i, err
+}
+
+const upgradeUserToChirpyRed = `-- name: UpgradeUserToChirpyRed :exec
+UPDATE users
+SET is_chirpy_red = $2
+WHERE id = $1
+`
+
+type UpgradeUserToChirpyRedParams struct {
+	ID          uuid.UUID
+	IsChirpyRed bool
+}
+
+func (q *Queries) UpgradeUserToChirpyRed(ctx context.Context, arg UpgradeUserToChirpyRedParams) error {
+	_, err := q.db.ExecContext(ctx, upgradeUserToChirpyRed, arg.ID, arg.IsChirpyRed)
+	return err
 }
