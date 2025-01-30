@@ -157,6 +157,18 @@ func (cfg *apiConfig) handlerUpgradeUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		sendJsonResponse(w, 401, map[string]string{"error": "Failed to get API key"})
+		return
+	}
+	if apiKey != cfg.polkaKey {
+		log.Print("Invalid API Key")
+		sendJsonResponse(w, 401, map[string]string{"error": "Invalid API key"})
+		return
+	}
+
 	if params.Event != "user.upgraded" {
 		log.Printf("Ignored event: %s is not 'user.upgraded'", params.Event)
 		sendJsonResponse(w, 204, nil)

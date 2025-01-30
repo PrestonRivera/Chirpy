@@ -98,24 +98,54 @@ func isChirpValid(chirp string) string {
 
 //
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
-	dbChirps, err := cfg.db.GetChirps(r.Context())
-	if err != nil {
-		log.Printf("Failed to get Chirps from database: %s", err)
-		sendJsonResponse(w, 500, map[string]string{"error": "Failed to retrieve list of chirps"})
-		return 
-	}
-
-	chirps := make([]Chirp, len(dbChirps))
-	for i, dbChirp := range dbChirps {
-		chirps[i] = Chirp{
-			ID: 		dbChirp.ID,
-			Created_at: dbChirp.CreatedAt,
-			Updated_at: dbChirp.UpdatedAt,
-			Body: 		dbChirp.Body,
-			User_id: 	dbChirp.UserID,
+	authID := r.URL.Query().Get("author_id")
+	if authID != "" {
+		parsedAuthId, err := uuid.Parse(authID)
+		if err != nil {
+			log.Printf("Author ID is invalid: %v", err)
+			sendJsonResponse(w, 400, map[string]string{"error": "Invalid author ID"})
+			return
 		}
-	}	
-	sendJsonResponse(w, 200, chirps)
+
+		userChirps, err := cfg.db.GetUserChirps(r.Context(), parsedAuthId)
+		if err != nil {
+			log.Printf("Failed to get users chirps from database: %v", err)
+			sendJsonResponse(w, 500, map[string]string{"error": "Failed to retrieve list of users chirps"})
+			return
+		}
+
+		chirps := make([]Chirp, len(userChirps))
+		for i, userChirp := range userChirps {
+			chirps[i] = Chirp{
+				ID: userChirp.ID,
+				Created_at: userChirp.CreatedAt,
+				Updated_at: userChirp.UpdatedAt,
+				Body: userChirp.Body,
+				User_id: userChirp.UserID,
+			}
+		}
+		sendJsonResponse(w, 200, chirps)
+
+	} else {
+		dbChirps, err := cfg.db.GetChirps(r.Context())
+		if err != nil {
+			log.Printf("Failed to get Chirps from database: %s", err)
+			sendJsonResponse(w, 500, map[string]string{"error": "Failed to retrieve list of chirps"})
+			return 
+		}
+
+		chirps := make([]Chirp, len(dbChirps))
+		for i, dbChirp := range dbChirps {
+			chirps[i] = Chirp{
+				ID: 		dbChirp.ID,
+				Created_at: dbChirp.CreatedAt,
+				Updated_at: dbChirp.UpdatedAt,
+				Body: 		dbChirp.Body,
+				User_id: 	dbChirp.UserID,
+			}
+		}	
+		sendJsonResponse(w, 200, chirps)
+	}
 }
 
 //
