@@ -74,7 +74,7 @@ Protected endpoints:
   "email": "preston@example.com"
 }
 
-// Response - 
+// Response
 {
     "id": "f7960cf2-898c-4290-b722-d7c6ff194285",
     "created_at": "2025-01-31T00:51:55.043245Z",
