@@ -6,8 +6,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -99,6 +101,8 @@ func isChirpValid(chirp string) string {
 //
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 	authID := r.URL.Query().Get("author_id")
+	var chirps []Chirp
+
 	if authID != "" {
 		parsedAuthId, err := uuid.Parse(authID)
 		if err != nil {
@@ -114,7 +118,7 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		chirps := make([]Chirp, len(userChirps))
+		chirps = make([]Chirp, len(userChirps))
 		for i, userChirp := range userChirps {
 			chirps[i] = Chirp{
 				ID: userChirp.ID,
@@ -124,8 +128,6 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 				User_id: userChirp.UserID,
 			}
 		}
-		sendJsonResponse(w, 200, chirps)
-
 	} else {
 		dbChirps, err := cfg.db.GetChirps(r.Context())
 		if err != nil {
@@ -134,7 +136,7 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 			return 
 		}
 
-		chirps := make([]Chirp, len(dbChirps))
+		chirps = make([]Chirp, len(dbChirps))
 		for i, dbChirp := range dbChirps {
 			chirps[i] = Chirp{
 				ID: 		dbChirp.ID,
@@ -144,8 +146,13 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 				User_id: 	dbChirp.UserID,
 			}
 		}	
-		sendJsonResponse(w, 200, chirps)
 	}
+	sortQuery := r.URL.Query().Get("sort")
+	if err := sortChirps(chirps, sortQuery); err != nil {
+		sendJsonResponse(w, 400, map[string]string{"error": err.Error()})
+		return 
+	}
+	sendJsonResponse(w, 200, chirps)
 }
 
 //
@@ -221,4 +228,16 @@ func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	sendJsonResponse(w, 204, nil)
+}
+
+//
+func sortChirps(chirps []Chirp,sortOrder string) error {
+	if sortOrder == "desc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].Created_at.After(chirps[j].Created_at)
+		})
+	} else if sortOrder != "" && sortOrder != "asc" {
+		return fmt.Errorf("Invalid sort parameter")
+	}
+	return nil
 }
