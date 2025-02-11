@@ -1,6 +1,6 @@
 # My REST API
 
-A simple REST api used for me to learn the fundamentals of APIs.
+A REST api I built to learn the fundamentals of an API.
 
 ## Getting Started 
 
