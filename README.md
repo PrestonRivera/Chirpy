@@ -1,4 +1,4 @@
-# My REST API
+# Chirpy A version of the famous Twitter/X
 
 A REST api I built to learn the fundamentals of an API.
 
