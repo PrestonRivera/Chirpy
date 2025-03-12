@@ -21,7 +21,7 @@ type apiConfig struct {
 }
 
 func main() {
-	const filePathRoot = "."
+	const filePathRoot = "./static"
 	const port = "8080"
 
 	godotenv.Load()
@@ -60,11 +60,16 @@ func main() {
 
 	mux := http.NewServeMux()
 	// Frontend Handler
-	mux.Handle("/app/", apiCfg.middlewareMetricInc(http.StripPrefix("/app", http.FileServer(http.Dir(filePathRoot)))))
+	mux.HandleFunc("/app/", func(w http.ResponseWriter, r *http.Request) {
+    if r.URL.Path == "/app/" {
+        http.ServeFile(w, r, "./static/login.html")
+        return
+    }
+    http.StripPrefix("/app/", http.FileServer(http.Dir("./static"))).ServeHTTP(w, r)
+	})
 
 	// GET Resquests
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
-	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetSingleChirp)
 	// POST Requests
@@ -80,7 +85,6 @@ func main() {
 	mux.HandleFunc("PUT /api/users", apiCfg.handlerUpdateUser)
 	// DELETE Requests
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handlerDeleteChirp)
-
 	
 	srv := &http.Server{
 		Addr:    ":" + port,

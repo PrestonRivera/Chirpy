@@ -3,7 +3,7 @@ package main
 import (
 	"Chirpy/internal/auth"
 	"Chirpy/internal/database"
-	"encoding/json"
+	 "encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -24,8 +24,8 @@ type LoginResponse struct {
 //
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Password 	string  `json:"password"`
 		Email 		string  `json:"email"`
+		Password 	string  `json:"password"`
 	}
 
 	decoder := json.NewDecoder(r.Body)

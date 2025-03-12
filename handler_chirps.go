@@ -237,7 +237,7 @@ func sortChirps(chirps []Chirp,sortOrder string) error {
 			return chirps[i].Created_at.After(chirps[j].Created_at)
 		})
 	} else if sortOrder != "" && sortOrder != "asc" {
-		return fmt.Errorf("Invalid sort parameter")
+		return fmt.Errorf("invalid sort parameter")
 	}
 	return nil
 }

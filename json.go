@@ -24,7 +24,7 @@ func sendJsonResponse(w http.ResponseWriter, statusCode int, payload interface{}
 	w.Write(data)
 }
 
-//
+/*
 func parseJsonRequest(w http.ResponseWriter, r *http.Request, destination interface{}) error {
 	err := json.NewDecoder(r.Body).Decode(destination)
 	if err != nil {
@@ -33,4 +33,4 @@ func parseJsonRequest(w http.ResponseWriter, r *http.Request, destination interf
 		return err
 	}
 	return nil
-}
+}*/

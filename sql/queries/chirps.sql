@@ -7,8 +7,8 @@ INSERT INTO chirps(
     user_id
 ) VALUES (
     gen_random_uuid(),
-    NOW(),
-    NOW(),
+    CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+    CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
     $1,
     $2
 )

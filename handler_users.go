@@ -193,5 +193,4 @@ func (cfg *apiConfig) handlerUpgradeUser(w http.ResponseWriter, r *http.Request)
 
 	log.Print("User was upgraded successfully")
 	sendJsonResponse(w, 204, nil)
-	return 
 }
