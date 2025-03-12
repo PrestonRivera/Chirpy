@@ -1,133 +1,52 @@
-# Chirpy A version of the famous Twitter/X
+# Chirpy
 
-A REST api I built to learn the fundamentals of an API.
+Chirpy is a social media platform project inspired by Twitter/X, built as a REST API to learn API fundamentals.
+With Docker integration for easy setup and deployment.
 
-## Getting Started 
+## Current Features
 
-Base URL: `http://localhost:8080`
+- User authentication (signup and login)
+- Create and delete posts ("chirps")
+- View all chirps
 
-NOTE: This API runs locally on port 8080. Make sure the server is running before making requests. I used AIR to build/run the server and Postman to test my endpoints.
+## Running with Docker
 
-## Running the Server 
+The application can be easily run using Docker compose:
 
-1. Must have GO installed on your system
-2. Clone the repo
-3. Navigate to the project directory
-4. Run the server:
-``` go run main.go```
+1. Clone the repository
 
-## Status Codes 
+```git clone https://github.com/PrestonRivera/Chirpy.git```
 
-This API returns standard HTTP status codes:
-- 200: Success
-- 404: Not found
-- 500: Server error
+2. Navigate to the root of the repo
 
-## Authentication 
-Many endpoints require JWT authentication via Bearer token. Include the token in the authorization header:
-```
-Authorization: Bearer <your_jwt_token>
-```
+```cd Chirpy```
 
-Protected endpoints:
-- All POST /api/chirps endpoints
-- DELETE /api/chirps/{chirpID}
-- PUT /api/users
+3. Start the application with Docker Compose
 
-## Query Parameters
-### GET /api/chirps
-- sort: (optional) Sort chirps by creation date
-    - asc: Ascending order
-    - desc: Descending order
-- author_id: (optional) Filter chirps by author ID
+```docker-compose up```
 
-## Endpoints
+## The server will be available at http://localhost:8080
 
-### Health & Metrics
-- GET `/api/healthz` - Check API health status
-- GET `/admin/metrics` - Get API metrics
+### API Highlights
 
-### Chirps
-- GET `/api/chirps` - Get all chirps
-- GET `/api/chirps/{chirpID}` - Get a specific chirp
-- POST `/api/chirps` - Create a new chirp
-- DELETE `/api/chirps/{chirpID}` - Delete a specific chirp
+- Authentication using JWT tokens
+- Create and manage chirps
+- User account management
 
-### Users
-- POST `/api/users` - Create a new user
-- PUT `/api/users` - Update user information
-- POST `/api/login` - User login
-- POST `/api/refresh` - Refresh authentication token
-- POST `/api/revoke` - Revoke authentication token
+### Technologies Used
 
-### Admin
-- POST `/admin/reset` - Reset users database
-- POST `/admin/reset-fileserver-hits` - Reset hit counter
-- POST `/polka/webhooks` - Upgrade user status
+- Go (backend)
+- PostgreSQL (database)
+- HTML/CSS/JavaScript (frontend)
+- Docker (containerization)
 
-### Example Requests/Responses
+### Development Status
 
-```json
-// POST /api/users - Create a user
-{
-  "password": "04234",
-  "email": "preston@example.com"
-}
+This project is in active developement. The following features are planned for future implementation:
 
-// Response
-{
-    "id": "f7960cf2-898c-4290-b722-d7c6ff194285",
-    "created_at": "2025-01-31T00:51:55.043245Z",
-    "updated_at": "2025-01-31T00:51:55.043245Z",
-    "email": "preston@example.com",
-    "is_chirpy_red": false
-}
-
-// POST /api/login - login as that user
-{
-    "password": "04234",
-    "email": "preston@example.com"
-}
-
-// Response
-{
-    "id": "f7960cf2-898c-4290-b722-d7c6ff194285",
-    "created_at": "2025-01-31T00:51:55.043245Z",
-    "updated_at": "2025-01-31T00:51:55.043245Z",
-    "email": "preston@example.com",
-    "is_chirpy_red": false,
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjaGlycHktYWNjZXNzIiwic3ViIjoiZjc5NjBjZjItODk4Yy00MjkwLWI3MjItZDdjNmZmMTk0Mjg1IiwiZXhwIjoxNzM4MzEwMDI4LCJpYXQiOjE3MzgzMDY0Mjh9.18LL-SHykTrHLzyH7SyV8qPf-NuPghUkaCsdZCJ-H_U",
-    "refresh_token": "98286e1f29574a6e3f73e351ae52b0ee9f8d17d6aa163994543e58c31cc7a0d9"
-}
-
-// POST /api/chirps - Create a Chirp
-Headers:
-{
-  "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjaGlycHktYWNjZXNzIiwic3ViIjoiZjc5NjBjZjItODk4Yy00MjkwLWI3MjItZDdjNmZmMTk0Mjg1IiwiZXhwIjoxNzM4MzEwMDI4LCJpYXQiOjE3MzgzMDY0Mjh9.18LL-SHykTrHLzyH7SyV8qPf-NuPghUkaCsdZCJ-H_U"
-}
-Request Body:
-{
-  "body": "I am the one who knocks"
-}
-
-// Response 
-{
-    "id": "21365d86-21ae-4a8e-97cd-fdfb5bf3e3ca",
-    "created_at": "2025-01-31T01:00:06.20064Z",
-    "updated_at": "2025-01-31T01:00:06.20064Z",
-    "body": "I am the one who knocks",
-    "user_id": "f7960cf2-898c-4290-b722-d7c6ff194285"
-}
-
-// GET /api/chirps
-// Response
-[
-    {
-        "id": "21365d86-21ae-4a8e-97cd-fdfb5bf3e3ca",
-        "created_at": "2025-01-31T01:00:06.20064Z",
-        "updated_at": "2025-01-31T01:00:06.20064Z",
-        "body": "I am the one who knocks",
-        "user_id": "f7960cf2-898c-4290-b722-d7c6ff194285"
-    }
-]
-```
+- User profiles
+- Post comments
+- Like/unlike functionality
+- User following
+- Image uploads
+- and MORE!
