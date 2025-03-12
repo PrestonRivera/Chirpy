@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Signup - Chirpy</title>
+        <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    </head>
+    <body>
+        <h1>Signup</h1>
+        <form id="signup-form">
+            <label for="email">Email:</label>
+            <input type="text" id="email" name="email" required>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+
+            <label for="confirm-password">Confirm Password:</label>
+            <input type="password" id="confirm-password" name="confirm-password" required>
+
+            <button type="submit">Sign Up</button>
+        </form>
+
+        <div id="signup-message"></div>
+
+        <script>
+            document.getElementById("signup-form").addEventListener("submit", function(event) {
+                event.preventDefault(); // Prevent the default form submission
+
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+                if (password !== confirmPassword) {
+                    alert("Passwords do not match!");
+                    return;
+                }
+
+                const formData = new FormData(event.target);
+                const formObject = {};
+                formData.forEach((value, key) => { formObject[key] = value });
+
+                // Send the form data as JSON
+                fetch("/api/users", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(formObject)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Display response message
+                    const messageDiv = document.getElementById("signup-message");
+                    if (data.error) {
+                        messageDiv.innerHTML = `<span style="color: red;">${data.error}</span>`;
+                    } else {
+                        messageDiv.innerHTML = `<span style="color: green;">Signup successful! Redirecting...</span>`;
+                        // Redirect to login page after successful signup
+                        setTimeout(() => {
+                            window.location.href = "/app/login.html";
+                        }, 2000); // Redirect after 2 seconds
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    document.getElementById("signup-message").innerHTML = `<span style="color: red;">Error signing up.</span>`;
+                });
+            });
+        </script>
+    </body>
+</html>

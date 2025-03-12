@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Chirpy</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center; 
+            align-items: center;     
+            height: 100vh;           
+            flex-direction: column;  
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;      
+        }
+
+        #post-form {
+            margin-bottom: 20px;
+            text-align: center;      
+        }
+
+        #post-content {
+            width: 80%;              
+            height: 100px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;      
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;      
+        }
+
+        #chirp-list {
+            margin-top: 20px;
+            width: 80%;              
+            margin-left: auto;
+            margin-right: auto;      
+        }
+
+        .chirp {
+            background-color: #fff;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .chirp p {
+            margin: 0;
+        }
+
+        .chirp small {
+            color: #777;
+            font-size: 0.9em;
+        }
+
+        
+        #post-message {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to Chirpy!</h1>
+    <p>Welcome back! You're now logged in.</p>
+
+    <!-- Form to post a new chirp -->
+    <h2>Create a Post</h2>
+    <form id="post-form">
+        <textarea id="post-content" placeholder="What's on your mind?" required></textarea><br>
+        <button type="submit">Post</button>
+    </form>
+
+    <!-- Message feedback (error or success) for the post -->
+    <div id="post-message"></div>
+
+    <!-- Section to display the list of chirps -->
+    <h2>Your Feed</h2>
+    <div id="chirp-list">
+        <!-- Chirps will be dynamically loaded here -->
+    </div>
+
+    <script>
+        // Handle the submission of a new chirp
+        document.getElementById("post-form").addEventListener("submit", function(event) {
+            event.preventDefault();  // Prevent default form submission
+
+            const postContent = document.getElementById("post-content").value;
+            const postData = {
+                body: postContent
+            };
+
+            const token = localStorage.getItem("token");
+            if (!token) {
+                document.getElementById("post-message").innerHTML = `<span style="color: red;">No token found. Please log in.</span>`;
+                return;
+            }
+
+            fetch("/api/chirps", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${localStorage.getItem("token")}` // Assuming the token is stored in localStorage
+                },
+                body: JSON.stringify(postData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                const messageDiv = document.getElementById("post-message");
+                if (data.error) {
+                    messageDiv.innerHTML = `<span style="color: red;">${data.error}</span>`;
+                } else {
+                    messageDiv.innerHTML = `<span style="color: green;">Post created successfully!</span>`;
+                    // Optionally clear the form
+                    document.getElementById("post-content").value = '';
+                    // Optionally refresh the chirp feed after posting
+                    loadChirps();
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById("post-message").innerHTML = `<span style="color: red;">Error creating post.</span>`;
+            });
+        });
+
+        // Load chirps from the backend API and display them
+        function loadChirps() {
+            fetch('/api/chirps')
+            .then(response => response.json())
+            .then(chirps => {
+                const chirpList = document.getElementById("chirp-list");
+                chirpList.innerHTML = ''; // Clear the list before populating
+                chirps.forEach(chirp => {
+                    const chirpElement = document.createElement('div');
+                    chirpElement.classList.add('chirp');
+                    chirpElement.innerHTML = `
+                        <p>${chirp.body}</p>
+                        <small>Posted on: ${new Date(chirp.created_at).toLocaleString()}</small>
+                        <button class="delete-btn" data-chirp-id="${chirp.id}">Delete</button>
+                    `;
+
+                    const deleteButton = chirpElement.querySelector('.delete-btn');
+                    deleteButton.addEventListener('click', function() {
+                        const chirpID = deleteButton.getAttribute('data-chirp-id');
+                        deleteChirp(chirpID);
+                    });
+
+                    chirpList.appendChild(chirpElement);
+                });
+            })
+            .catch(error => {
+                console.error("Error loading chirps:", error);
+            });
+        }
+
+        // Function to delete a chirp
+        function deleteChirp(chirpID) {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("No token found. Please log in.");
+                return;
+            }
+
+            fetch(`/api/chirps/${chirpID}`, {
+                method: 'DELETE',
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert("Post deleted successfully!");
+                    loadChirps(); // Reload chirps after deletion
+                } else {
+                    alert("Error deleting post.");
+                }
+            })
+            .catch(error => {
+                console.error("Error deleting chirp:", error);
+                alert("Error deleting post.");
+            });
+        }
+
+        // Load chirps when the page is ready
+        document.addEventListener("DOMContentLoaded", function() {
+            loadChirps();
+        });
+    </script>
+</body>
+</html>

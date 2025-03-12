@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Login - Chirpy</title>
+    </head>
+    <body>
+        <h1>Login</h1>
+        <form id="login-form">
+            <label for="email">Email:</label>
+            <input type="text" id="email" name="email" required>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit">Login</button>
+        </form>
+
+        <div id="login-message"></div>
+
+        <p>Don't have an account? <a href="/app/signup.html">Sign up here!</a>.</p>
+    
+        <script>
+            document.getElementById("login-form").addEventListener("submit", function(event) {
+                event.preventDefault(); // Prevent the default form submission
+
+                const formData = new FormData(event.target);
+                const formObject = {};
+                formData.forEach((value, key) => { formObject[key] = value });
+
+                // Send the form data as JSON
+                fetch("/api/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(formObject)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const messageDiv = document.getElementById("login-message");
+                    if (data.error) {
+                        messageDiv.innerHTML = `<span style="color: red;">${data.error}</span>`;
+                    } else {
+                        messageDiv.innerHTML = `<span style="color: green;">Login successful!</span>`;
+
+                        // Store the JWT token in localStorage (or another method of your choice)
+                        localStorage.setItem("token", data.token); // assuming the server responds with the token
+
+                        // Redirect to the home page
+                        window.location.href = "/app/home.html";  // Redirect to home page after login
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    document.getElementById("login-message").innerHTML = `<span style="color: red;">Error logging in.</span>`;
+                });
+            });
+        </script>
+        
+    </body>
+</html>
